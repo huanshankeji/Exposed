@@ -154,11 +154,6 @@ public final class org/jetbrains/exposed/sql/AndOp : org/jetbrains/exposed/sql/C
 	public fun <init> (Ljava/util/List;)V
 }
 
-public final class org/jetbrains/exposed/sql/ArrayColumnType : org/jetbrains/exposed/sql/ColumnType {
-	public fun <init> ()V
-	public fun sqlType ()Ljava/lang/String;
-}
-
 public final class org/jetbrains/exposed/sql/AutoIncColumnType : org/jetbrains/exposed/sql/IColumnType {
 	public fun <init> (Lorg/jetbrains/exposed/sql/ColumnType;Ljava/lang/String;Ljava/lang/String;)V
 	public fun equals (Ljava/lang/Object;)Z
@@ -1446,6 +1441,12 @@ public class org/jetbrains/exposed/sql/OffsetWindowFrameBound : org/jetbrains/ex
 	public fun toQueryBuilder (Lorg/jetbrains/exposed/sql/QueryBuilder;)V
 }
 
+public final class org/jetbrains/exposed/sql/OneDimArrayColumnType : org/jetbrains/exposed/sql/ColumnType {
+	public fun <init> (Lorg/jetbrains/exposed/sql/IColumnType;)V
+	public final fun getElementType ()Lorg/jetbrains/exposed/sql/IColumnType;
+	public fun sqlType ()Ljava/lang/String;
+}
+
 public abstract class org/jetbrains/exposed/sql/Op : org/jetbrains/exposed/sql/Expression {
 	public static final field Companion Lorg/jetbrains/exposed/sql/Op$Companion;
 	public fun <init> ()V
@@ -1502,6 +1503,7 @@ public final class org/jetbrains/exposed/sql/OpKt {
 	public static final fun shortParam (S)Lorg/jetbrains/exposed/sql/Expression;
 	public static final fun stringLiteral (Ljava/lang/String;)Lorg/jetbrains/exposed/sql/LiteralOp;
 	public static final fun stringParam (Ljava/lang/String;)Lorg/jetbrains/exposed/sql/Expression;
+	public static final fun toColumnType (Lkotlin/reflect/KClass;)Lorg/jetbrains/exposed/sql/IColumnType;
 	public static final fun ubyteLiteral-7apg3OU (B)Lorg/jetbrains/exposed/sql/LiteralOp;
 	public static final fun ubyteParam-7apg3OU (B)Lorg/jetbrains/exposed/sql/Expression;
 	public static final fun uintLiteral-WZ4Q5Ns (I)Lorg/jetbrains/exposed/sql/LiteralOp;
@@ -1724,8 +1726,6 @@ public final class org/jetbrains/exposed/sql/RowNumber : org/jetbrains/exposed/s
 public final class org/jetbrains/exposed/sql/SQLExpressionBuilderKt {
 	public static final fun CustomLongFunction (Ljava/lang/String;[Lorg/jetbrains/exposed/sql/Expression;)Lorg/jetbrains/exposed/sql/CustomFunction;
 	public static final fun CustomStringFunction (Ljava/lang/String;[Lorg/jetbrains/exposed/sql/Expression;)Lorg/jetbrains/exposed/sql/CustomFunction;
-	public static final fun allOp (Ljava/lang/Iterable;)Lorg/jetbrains/exposed/sql/ops/AllOp;
-	public static final fun anyOp (Ljava/lang/Iterable;)Lorg/jetbrains/exposed/sql/ops/AnyOp;
 	public static final fun avg (Lorg/jetbrains/exposed/sql/ExpressionWithColumnType;I)Lorg/jetbrains/exposed/sql/Avg;
 	public static synthetic fun avg$default (Lorg/jetbrains/exposed/sql/ExpressionWithColumnType;IILjava/lang/Object;)Lorg/jetbrains/exposed/sql/Avg;
 	public static final fun castTo (Lorg/jetbrains/exposed/sql/Expression;Lorg/jetbrains/exposed/sql/IColumnType;)Lorg/jetbrains/exposed/sql/ExpressionWithColumnType;
@@ -2559,10 +2559,12 @@ public final class org/jetbrains/exposed/sql/functions/math/TanFunction : org/je
 	public fun <init> (Lorg/jetbrains/exposed/sql/ExpressionWithColumnType;)V
 }
 
-public abstract class org/jetbrains/exposed/sql/ops/AllAnyOp : org/jetbrains/exposed/sql/Op {
-	public fun <init> (Ljava/lang/Iterable;)V
+public final class org/jetbrains/exposed/sql/ops/AllAnyOp : org/jetbrains/exposed/sql/Op {
+	public fun <init> (Lorg/jetbrains/exposed/sql/ops/AllAnyOp$OpType;Lorg/jetbrains/exposed/sql/IColumnType;Ljava/lang/Iterable;Lkotlin/jvm/functions/Function1;)V
+	public final fun getElementType ()Lorg/jetbrains/exposed/sql/IColumnType;
 	public final fun getList ()Ljava/lang/Iterable;
-	public abstract fun isAllOrAny ()Lorg/jetbrains/exposed/sql/ops/AllAnyOp$OpType;
+	public final fun getOpType ()Lorg/jetbrains/exposed/sql/ops/AllAnyOp$OpType;
+	public final fun getToTypedArray ()Lkotlin/jvm/functions/Function1;
 	public fun toQueryBuilder (Lorg/jetbrains/exposed/sql/QueryBuilder;)V
 }
 
@@ -2571,16 +2573,6 @@ public final class org/jetbrains/exposed/sql/ops/AllAnyOp$OpType : java/lang/Enu
 	public static final field Any Lorg/jetbrains/exposed/sql/ops/AllAnyOp$OpType;
 	public static fun valueOf (Ljava/lang/String;)Lorg/jetbrains/exposed/sql/ops/AllAnyOp$OpType;
 	public static fun values ()[Lorg/jetbrains/exposed/sql/ops/AllAnyOp$OpType;
-}
-
-public final class org/jetbrains/exposed/sql/ops/AllOp : org/jetbrains/exposed/sql/ops/AllAnyOp {
-	public fun <init> (Ljava/lang/Iterable;)V
-	public fun isAllOrAny ()Lorg/jetbrains/exposed/sql/ops/AllAnyOp$OpType;
-}
-
-public final class org/jetbrains/exposed/sql/ops/AnyOp : org/jetbrains/exposed/sql/ops/AllAnyOp {
-	public fun <init> (Ljava/lang/Iterable;)V
-	public fun isAllOrAny ()Lorg/jetbrains/exposed/sql/ops/AllAnyOp$OpType;
 }
 
 public abstract class org/jetbrains/exposed/sql/ops/InListOrNotInListBaseOp : org/jetbrains/exposed/sql/Op, org/jetbrains/exposed/sql/ComplexExpression {

@@ -1,33 +1,45 @@
 package org.jetbrains.exposed.sql.ops
 
-import org.jetbrains.exposed.sql.ArrayColumnType
+import org.jetbrains.exposed.sql.IColumnType
+import org.jetbrains.exposed.sql.OneDimArrayColumnType
 import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.QueryBuilder
+import org.jetbrains.exposed.sql.toColumnType
+import kotlin.reflect.KClass
 
-abstract class AllAnyOp<T>(val list: Iterable<T>) : Op<T>() {
+class AllAnyOp<T>(val opType: OpType, val elementType: IColumnType, val list: Iterable<T>, val toTypedArray: List<T>.() -> Any) : Op<T>() {
+    // TODO remove
+    /*
+    init {
+        require(list.any())
+        val type = list.asSequence().filter { it !== null }::class
+        require(list.all { it === null || it!!::class == type })
+    }
+     */
+
     enum class OpType {
         All, Any
     }
 
-    abstract fun isAllOrAny(): OpType
-
     override fun toQueryBuilder(queryBuilder: QueryBuilder) = queryBuilder {
-        +when (isAllOrAny()) {
+        +when (opType) {
             OpType.All -> "ALL"
             OpType.Any -> "ANY"
         }
         +'('
-        //+"ARRAY[" // This syntax is for PostgresSQL.
-        registerArgument(ArrayColumnType<T>(), list)
-        //+"]"
+        // +"ARRAY[" // This syntax is for PostgresSQL.
+        val array = list.toList().toTypedArray()
+        registerArgument(OneDimArrayColumnType(elementType), array)
+        // +"]"
         +')'
     }
 }
 
-class AllOp<T>(list: Iterable<T>) : AllAnyOp<T>(list) {
-    override fun isAllOrAny(): OpType = OpType.All
-}
+// TODO remove
+/*
+inline fun <reified T> AllAnyOp(opType: AllAnyOp.OpType, list: Iterable<T>) =
+    AllAnyOp(opType, (T::class as KClass<*>).toColumnType(), list)
+*/
 
-class AnyOp<T>(list: Iterable<T>) : AllAnyOp<T>(list) {
-    override fun isAllOrAny(): OpType = OpType.Any
-}
+inline fun <reified T> AllAnyOp(opType: AllAnyOp.OpType, list: Iterable<T>) =
+    AllAnyOp(opType, (T::class as KClass<*>).toColumnType(), list) { this.toTypedArray() }

@@ -5,6 +5,7 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.wrap
 import org.jetbrains.exposed.sql.statements.api.ExposedBlob
 import org.jetbrains.exposed.sql.vendors.*
 import java.math.BigDecimal
+import kotlin.reflect.KClass
 
 /**
  * Represents an SQL operator.
@@ -731,6 +732,25 @@ fun decimalParam(value: BigDecimal): Expression<BigDecimal> = QueryParameter(val
 fun blobParam(value: ExposedBlob): Expression<ExposedBlob> = QueryParameter(value, BlobColumnType())
 
 // Misc.
+
+/** Adapted from [ISqlExpressionBuilder.wrap]. */
+fun <T : Any> KClass<T>.toColumnType(): IColumnType = when (this) {
+    Boolean::class -> BooleanColumnType.INSTANCE
+    Byte::class -> ByteColumnType()
+    UByte::class -> UByteColumnType()
+    Short::class -> ShortColumnType()
+    UShort::class -> UShortColumnType()
+    Int::class -> IntegerColumnType()
+    UInt::class -> UIntegerColumnType()
+    Long::class -> LongColumnType()
+    ULong::class -> ULongColumnType()
+    Float::class -> FloatColumnType()
+    Double::class -> DoubleColumnType()
+    String::class -> TextColumnType() // TODO
+    // added
+    BigDecimal::class -> DecimalColumnType(TODO(), TODO())
+    else -> TODO("$this")
+}
 
 /**
  * Represents an SQL operator that doesn't perform any operation.
