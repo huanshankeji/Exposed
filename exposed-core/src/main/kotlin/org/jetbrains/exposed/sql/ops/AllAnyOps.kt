@@ -1,18 +1,46 @@
 package org.jetbrains.exposed.sql.ops
 
 import org.jetbrains.exposed.sql.Op
+import org.jetbrains.exposed.sql.Query
 import org.jetbrains.exposed.sql.QueryBuilder
+import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.UntypedAndUnsizedArrayColumnType
 
-class AllAnyOp<T>(val opName: String, val array: Array<T>) : Op<T>() {
-
+abstract class AllAnyFromBaseOp<T, SubSearch>(val isAny: Boolean, val subSearch: SubSearch) : Op<T>() {
     override fun toQueryBuilder(queryBuilder: QueryBuilder) = queryBuilder {
-        +opName
+        +(if (isAny) "ANY" else "ALL")
         +'('
-        registerArgument(UntypedAndUnsizedArrayColumnType, array)
+        registerSubSearchArgument(subSearch)
         +')'
+    }
+
+    abstract fun QueryBuilder.registerSubSearchArgument(subSearch: SubSearch)
+}
+
+class AllAnyFromSubQueryOp<T>(isAny: Boolean, subQuery: Query) : AllAnyFromBaseOp<T, Query>(isAny, subQuery) {
+    override fun QueryBuilder.registerSubSearchArgument(subSearch: Query) {
+        subSearch.prepareSQL(this)
     }
 }
 
+// supported only by PostgreSQL and H2
+class AllAnyFromArrayOp<T>(isAny: Boolean, array: Array<T>) : AllAnyFromBaseOp<T, Array<T>>(isAny, array) {
+    override fun QueryBuilder.registerSubSearchArgument(subSearch: Array<T>) =
+        registerArgument(UntypedAndUnsizedArrayColumnType, subSearch)
+}
+
+// supported only by MySQL
+class AllAnyFromTableOp<T>(isAny: Boolean, table: Table) : AllAnyFromBaseOp<T, Table>(isAny, table) {
+    override fun QueryBuilder.registerSubSearchArgument(subSearch: Table) {
+        // https://dev.mysql.com/doc/refman/8.0/en/any-in-some-subqueries.html
+        +"TABLE "
+        +subSearch.tableName
+    }
+}
+
+/* TODO
+class AnyFromArrayOp<T>(array: Array<T>) : AllAnyFromArrayOp<T>(true, array)
+
 inline fun <reified T> AllAnyOp(opName: String, list: List<T>) =
-    AllAnyOp(opName, list.toTypedArray())
+    AllAnyFromBaseOp(opName, list.toTypedArray())
+*/

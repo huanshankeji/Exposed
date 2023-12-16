@@ -5,9 +5,6 @@ package org.jetbrains.exposed.sql
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.EntityIDFunctionProvider
 import org.jetbrains.exposed.dao.id.IdTable
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.functions.AllFunction
-import org.jetbrains.exposed.sql.functions.AnyFunction
 import org.jetbrains.exposed.sql.ops.*
 import org.jetbrains.exposed.sql.vendors.FunctionProvider
 import org.jetbrains.exposed.sql.vendors.currentDialect
@@ -96,26 +93,23 @@ fun <T : Any?> ExpressionWithColumnType<T>.varPop(scale: Int = 2): VarPop<T> = V
  */
 fun <T : Any?> ExpressionWithColumnType<T>.varSamp(scale: Int = 2): VarSamp<T> = VarSamp(this, scale)
 
-// using `Op`
+// Array Comparisons
+
+/** Returns this array of data wrapped in the `ANY` operator. */
+fun <T> anyFrom(array: Array<T>): Op<T> = AllAnyFromArrayOp(true, array)
+
+
+/** Returns this subquery wrapped in the `ANY` operator. */
+fun <T> anyFrom(subQuery: Query): Op<T> = AllAnyFromSubQueryOp(true, subQuery)
 
 /** Returns this array of data wrapped in the `ALL` operator. */
-fun <T> Array<T>.allOp(): Op<T> = AllAnyOp("ALL", this)
+fun <T> allFrom(array: Array<T>): Op<T> = AllAnyFromArrayOp(false, array)
 
-/** Returns this array of data wrapped in the `ANY` operator. The name is explicitly distinguished from [Array.any]. */
-fun <T> Array<T>.anyOp(): Op<T> = AllAnyOp("ANY", this)
 
-// using `CustomFunction`
+/** Returns this subquery wrapped in the `ALL` operator. */
+fun <T> allFrom(subQuery: Query): Op<T> = AllAnyFromSubQueryOp(false, subQuery)
 
-/** Returns this array of data wrapped in the `ALL` operator. */
-fun <T> Array<T>.allFunction(): CustomFunction<T> = AllFunction(this)
-
-/** Returns this array of data wrapped in the `ANY` operator. The name is explicitly distinguished from [Array.any]. */
-fun <T> Array<T>.anyFunction(): CustomFunction<T> = AnyFunction(this)
-
-/** Checks if this expression is equal to any element from [array].
- * This is a more efficient alternative to [ISqlExpressionBuilder.inList] on PostgreSQL and H2. */
-infix fun <T> ExpressionWithColumnType<T>.eqAny(array: Array<T>): Op<Boolean> =
-    this eq array.anyOp() // TODO or `array.anyFunction()`
+fun <T> someFrom(array: Array<T>): Op<T> = anyFrom(array)
 
 // Sequence Manipulation Functions
 
@@ -655,6 +649,10 @@ interface ISqlExpressionBuilder {
         val idTable = (columnType as EntityIDColumnType<T>).idColumn.table as IdTable<T>
         return SingleValueInListOp(this, list.map { EntityIDFunctionProvider.createEntityID(it, idTable) }, isInList = false)
     }
+
+
+    /** Checks if this expression is equal to any element from [table]. */
+    infix fun <T> ExpressionWithColumnType<T>.inList(table : Table): InListOrNotInListBaseOp<T> = InTableOp()
 
     // Misc.
 

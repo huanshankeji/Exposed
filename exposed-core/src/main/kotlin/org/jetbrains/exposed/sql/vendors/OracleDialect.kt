@@ -64,9 +64,6 @@ internal object OracleDataTypeProvider : DataTypeProvider() {
 
     override fun jsonType(): String = "VARCHAR2(4000)"
 
-    override fun untypedAndUnsizedArrayType(): String =
-        throw UnsupportedByDialectException("This vendor does not support array data type", currentDialect)
-
     override fun processForDefaultValue(e: Expression<*>): String = when {
         e is LiteralOp<*> && (e.columnType as? IDateColumnType)?.hasTimePart == false -> "DATE ${super.processForDefaultValue(e)}"
         e is LiteralOp<*> && e.columnType is IDateColumnType -> "TIMESTAMP ${super.processForDefaultValue(e)}"

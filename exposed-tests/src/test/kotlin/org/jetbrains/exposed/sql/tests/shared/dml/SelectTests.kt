@@ -5,13 +5,11 @@ import org.jetbrains.exposed.crypt.encryptedBinary
 import org.jetbrains.exposed.crypt.encryptedVarchar
 import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.sql.*
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.tests.DatabaseTestsBase
 import org.jetbrains.exposed.sql.tests.TestDB
 import org.jetbrains.exposed.sql.tests.shared.assertEquals
 import org.jetbrains.exposed.sql.tests.shared.entities.EntityTests
 import org.junit.Test
-import java.math.BigDecimal
 import kotlin.test.assertNull
 
 class SelectTests : DatabaseTestsBase() {
@@ -213,15 +211,24 @@ class SelectTests : DatabaseTestsBase() {
         }
     }
 
-    val testDBsSupportingArrays =
-        listOf(TestDB.POSTGRESQL, TestDB.POSTGRESQLNG, TestDB.H2, TestDB.H2_MYSQL, TestDB.H2_MARIADB, TestDB.H2_PSQL, TestDB.H2_ORACLE, TestDB.H2_SQLSERVER)
+    val testDBsSupportingFromArrays =
+        listOf(TestDB.POSTGRESQL, TestDB.POSTGRESQLNG) + TestDB.allH2TestDB
+
+    // adpted `testInSubQuery01`
+    @Test
+    fun testEqAnyFromSubQuery() {
+        withCitiesAndUsers { cities, _, _ ->
+            val r = cities.select { cities.id eq anyFrom( cities.slice(cities.id).select { cities.id eq 2 }) }
+            assertEquals(1L, r.count())
+        }
+    }
 
     // adapted from `testInList01`
-    // TODO all the other tests of `inList` can be adapted to test both `inList` and `eqAny` if necessary
-    fun testEqAny(eqOp: Column<String>.() -> Op<Boolean>) {
-        withDb(testDBsSupportingArrays) {
+    @Test
+    fun testEqAnyFromArray() {
+        withDb(testDBsSupportingFromArrays) {
             withCitiesAndUsers { _, users, _ ->
-                val r = users.select { users.id.eqOp() }.orderBy(users.name).toList()
+                val r = users.select { users.id eq anyFrom(arrayOf("andrey", "alex")) }.orderBy(users.name).toList()
 
                 assertEquals(2, r.size)
                 assertEquals("Alex", r[0][users.name])
@@ -230,37 +237,19 @@ class SelectTests : DatabaseTestsBase() {
         }
     }
 
-    fun testEqAny(anyExpression: Expression<String>) =
-        testEqAny { this eq anyExpression }
-
-    val userIds = arrayOf("andrey", "alex")
-
     @Test
-    fun testEqAnyOp() = testEqAny(userIds.anyOp())
-
-    @Test
-    fun testEqAnyFunction() = testEqAny(userIds.anyFunction())
-
-    @Test
-    fun testEqAny() = testEqAny { this eqAny userIds }
-
-    val amounts = arrayOf(1, 10, 100, 1000).map { it.toBigDecimal() }.toTypedArray()
-
-    fun testGreaterEqAll(allExpression: Expression<BigDecimal>) {
-        withDb(testDBsSupportingArrays) {
+    fun testGreaterEqAll() {
+        withDb(testDBsSupportingFromArrays) {
             withSales { _, sales ->
-                val r = sales.select { sales.amount greaterEq allExpression }.toList()
+                val amounts = arrayOf(1, 10, 100, 1000).map { it.toBigDecimal() }.toTypedArray()
+                val r = sales.select { sales.amount greaterEq allFrom(amounts) }.toList()
                 assertEquals(3, r.size)
                 r.forEach { assertEquals("coffee", it[sales.product]) }
             }
         }
     }
 
-    @Test
-    fun testGreaterEqAllOp() = testGreaterEqAll(amounts.allOp())
-
-    @Test
-    fun testGreaterEqAllFunction() = testGreaterEqAll(amounts.allFunction())
+    val testDBsSupportingFromTables {}
 
     @Test
     fun testSelectDistinct() {

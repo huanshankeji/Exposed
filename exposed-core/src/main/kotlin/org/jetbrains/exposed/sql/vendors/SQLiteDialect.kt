@@ -20,8 +20,6 @@ internal object SQLiteDataTypeProvider : DataTypeProvider() {
     override fun dateType(): String = "TEXT"
     override fun booleanToStatementString(bool: Boolean) = if (bool) "1" else "0"
     override fun jsonType(): String = "TEXT"
-    override fun untypedAndUnsizedArrayType(): String =
-        throw UnsupportedByDialectException("This vendor does not support array data type", currentDialect)
     override fun hexToDb(hexString: String): String = "X'$hexString'"
 }
 

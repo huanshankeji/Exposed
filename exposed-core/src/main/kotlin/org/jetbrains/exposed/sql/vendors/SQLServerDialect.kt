@@ -14,6 +14,7 @@ internal object SQLServerDataTypeProvider : DataTypeProvider() {
             "TINYINT"
         }
     }
+
     override fun integerAutoincType(): String = "INT IDENTITY(1,1)"
     override fun longAutoincType(): String = "BIGINT IDENTITY(1,1)"
     override fun binaryType(): String {
@@ -31,6 +32,7 @@ internal object SQLServerDataTypeProvider : DataTypeProvider() {
         } else {
             "DATETIMEOFFSET"
         }
+
     override fun booleanType(): String = "BIT"
     override fun booleanToStatementString(bool: Boolean): String = if (bool) "1" else "0"
 
@@ -42,8 +44,6 @@ internal object SQLServerDataTypeProvider : DataTypeProvider() {
     override fun mediumTextType(): String = textType()
     override fun largeTextType(): String = textType()
     override fun jsonType(): String = "NVARCHAR(MAX)"
-    override fun untypedAndUnsizedArrayType(): String =
-        throw UnsupportedByDialectException("This vendor does not support array data type", currentDialect)
 
     override fun precessOrderByClause(queryBuilder: QueryBuilder, expression: Expression<*>, sortOrder: SortOrder) {
         when (sortOrder) {
