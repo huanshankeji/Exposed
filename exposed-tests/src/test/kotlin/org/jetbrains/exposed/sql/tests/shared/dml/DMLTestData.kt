@@ -4,11 +4,7 @@ import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IntIdTable
-import org.jetbrains.exposed.sql.Column
-import org.jetbrains.exposed.sql.ResultRow
-import org.jetbrains.exposed.sql.Table
-import org.jetbrains.exposed.sql.Transaction
-import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.tests.DatabaseTestsBase
 import org.jetbrains.exposed.sql.tests.TestDB
 import java.math.BigDecimal
@@ -44,6 +40,10 @@ object DMLTestsData {
         val year: Column<Int> = integer("year")
         val month: Column<Int> = integer("month")
         val product: Column<String?> = varchar("product", 30).nullable()
+        val amount: Column<BigDecimal> = decimal("amount", 8, 2)
+    }
+
+    object SomeAmounts : Table() {
         val amount: Column<BigDecimal> = decimal("amount", 8, 2)
     }
 }
@@ -164,6 +164,31 @@ private fun insertSale(year: Int, month: Int, product: String?, amount: String) 
         it[sales.amount] = BigDecimal(amount)
     }
 }
+
+fun DatabaseTestsBase.withSomeAmounts(
+    statement: Transaction.(testDb: TestDB, someAmounts: DMLTestsData.SomeAmounts) -> Unit
+) {
+    val someAmounts = DMLTestsData.SomeAmounts
+
+    withTables(someAmounts) {
+        fun insertAmount(amount: BigDecimal) =
+            someAmounts.insert { it[someAmounts.amount] = amount }
+        insertAmount(BigDecimal("650.70"))
+        insertAmount(BigDecimal("1500.25"))
+        insertAmount(BigDecimal(1000))
+
+        statement(it, someAmounts)
+    }
+}
+
+fun DatabaseTestsBase.withSalesAndSomeAmounts(
+    statement: Transaction.(testDb: TestDB, sales: DMLTestsData.Sales, someAmounts: DMLTestsData.SomeAmounts) -> Unit
+) =
+    withSales { testDb, sales ->
+        withSomeAmounts { _, someAmounts ->
+            statement(testDb, sales, someAmounts)
+        }
+    }
 
 object OrgMemberships : IntIdTable() {
     val orgId = reference("org", Orgs.uid)

@@ -9,7 +9,7 @@ import org.jetbrains.exposed.sql.UntypedAndUnsizedArrayColumnType
 abstract class AllAnyFromBaseOp<T, SubSearch>(val isAny: Boolean, val subSearch: SubSearch) : Op<T>() {
     override fun toQueryBuilder(queryBuilder: QueryBuilder) = queryBuilder {
         +(if (isAny) "ANY" else "ALL")
-        +'('
+        +" ("
         registerSubSearchArgument(subSearch)
         +')'
     }
@@ -23,13 +23,13 @@ class AllAnyFromSubQueryOp<T>(isAny: Boolean, subQuery: Query) : AllAnyFromBaseO
     }
 }
 
-// supported only by PostgreSQL and H2
+/** This function is only supported by PostgreSQL and H2 dialects. */
 class AllAnyFromArrayOp<T>(isAny: Boolean, array: Array<T>) : AllAnyFromBaseOp<T, Array<T>>(isAny, array) {
     override fun QueryBuilder.registerSubSearchArgument(subSearch: Array<T>) =
         registerArgument(UntypedAndUnsizedArrayColumnType, subSearch)
 }
 
-// supported only by MySQL
+/** This function is only supported by PostgreSQL and H2 dialects. */
 class AllAnyFromTableOp<T>(isAny: Boolean, table: Table) : AllAnyFromBaseOp<T, Table>(isAny, table) {
     override fun QueryBuilder.registerSubSearchArgument(subSearch: Table) {
         // https://dev.mysql.com/doc/refman/8.0/en/any-in-some-subqueries.html
@@ -37,10 +37,3 @@ class AllAnyFromTableOp<T>(isAny: Boolean, table: Table) : AllAnyFromBaseOp<T, T
         +subSearch.tableName
     }
 }
-
-/* TODO
-class AnyFromArrayOp<T>(array: Array<T>) : AllAnyFromArrayOp<T>(true, array)
-
-inline fun <reified T> AllAnyOp(opName: String, list: List<T>) =
-    AllAnyFromBaseOp(opName, list.toTypedArray())
-*/
